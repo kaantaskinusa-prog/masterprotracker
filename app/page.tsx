@@ -1,5 +1,6 @@
 'use client';
 
+import LoginPage from './LoginPage';
 import { useState } from 'react';
 import Calculator from './Calculator'; 
 import LoginPage from './LoginPage';
