@@ -7,7 +7,6 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Buraya şifre kontrolü gelebilir, şimdilik basit bir kontrol yapalım
     if (username === 'admin' && password === '123') {
       onLogin();
     } else {
