@@ -1,3 +1,4 @@
+<Analytics history={history} />
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 
