@@ -1,55 +1,86 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 
 const Calculator = () => {
+  const [jobType, setJobType] = useState('Nail Technician');
+  const [state, setState] = useState('FL');
   const [weeklyData, setWeeklyData] = useState<any>({ mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 });
-  const [commissionRate, setCommissionRate] = useState(40);
-  const [miles, setMiles] = useState(0);
-  const [expenses, setExpenses] = useState(0);
+  const [commissionRate, setCommissionRate] = useState(0);
+  const [hours, setHours] = useState(0);
+  const [expenses, setExpenses] = useState<{desc: string, amount: number}[]>([]);
+  const [newExpDesc, setNewExpDesc] = useState('');
+  const [newExpAmt, setNewExpAmt] = useState('');
 
-  const calc = useMemo(() => {
-    const totalSales = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0);
-    const commissionIncome = totalSales * (Number(commissionRate) / 100);
-    const mileageDeduction = Number(miles) * 0.67;
-    const totalExpenses = Number(expenses) + mileageDeduction;
-    
-    const taxableIncome = Math.max(0, commissionIncome - totalExpenses);
-    const totalTax = (taxableIncome * 0.153) + (taxableIncome * 0.10); // %15.3 SE + %10 Fed
-    const estimatedNet = commissionIncome - totalExpenses - totalTax;
+  // Toplam Gelir
+  const totalGross = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0);
+  
+  // Basit Gider Hesabı
+  const totalExpenses = expenses.reduce((acc, exp) => acc + Number(exp.amount), 0);
+  
+  // Basit Net (Vergisiz)
+  const estimatedNet = totalGross - totalExpenses;
 
-    return { commissionIncome, totalExpenses, estimatedNet, totalTax };
-  }, [weeklyData, commissionRate, miles, expenses]);
+  const addExpense = () => {
+    if(newExpDesc && newExpAmt) {
+      setExpenses([...expenses, {desc: newExpDesc, amount: Number(newExpAmt)}]);
+      setNewExpDesc('');
+      setNewExpAmt('');
+    }
+  };
 
   return (
-    <div className="p-4 bg-gray-900 text-white rounded-lg max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Master Pro Tracker</h2>
-      
+    <div className="p-6 bg-gray-950 text-white min-h-screen">
+      {/* Üst Dropdownlar */}
+      <div className="flex gap-4 mb-6">
+        <select className="bg-gray-800 p-2 rounded w-full" value={jobType} onChange={(e) => setJobType(e.target.value)}>
+          <option>Nail Technician</option>
+        </select>
+        <select className="bg-gray-800 p-2 rounded w-full" value={state} onChange={(e) => setState(e.target.value)}>
+          <option>FL</option>
+        </select>
+      </div>
+
       {/* Günlük Girişler */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
+      <div className="grid grid-cols-7 gap-2 mb-6">
         {Object.keys(weeklyData).map((day) => (
           <div key={day}>
-            <label className="text-xs uppercase">{day}</label>
+            <label className="text-[10px] uppercase text-gray-400">{day}</label>
             <input 
-              type="number" className="w-full bg-gray-800 p-2 rounded text-white"
+              type="number" className="w-full bg-gray-800 p-2 rounded text-center"
               value={weeklyData[day]} onChange={(e) => setWeeklyData({...weeklyData, [day]: e.target.value})}
             />
           </div>
         ))}
       </div>
 
-      <div className="space-y-2 mb-6">
-        <input type="number" placeholder="Komisyon Oranı (%)" className="w-full bg-gray-800 p-2 rounded" onChange={(e) => setCommissionRate(Number(e.target.value))} />
-        <input type="number" placeholder="Toplam Mil" className="w-full bg-gray-800 p-2 rounded" onChange={(e) => setMiles(Number(e.target.value))} />
-        <input type="number" placeholder="Diğer Giderler ($)" className="w-full bg-gray-800 p-2 rounded" onChange={(e) => setExpenses(Number(e.target.value))} />
+      {/* Inputs */}
+      <div className="mb-6 space-y-4">
+        <input type="number" placeholder="Commission Rate (%)" className="w-full bg-gray-800 p-2 rounded" onChange={(e) => setCommissionRate(Number(e.target.value))} />
+        <input type="number" placeholder="Hours" className="w-full bg-gray-800 p-2 rounded" onChange={(e) => setHours(Number(e.target.value))} />
       </div>
 
-      {/* Sonuç Ekranı */}
-      <div className="border-t border-gray-700 pt-4">
-        <p>Komisyon Geliri: ${calc.commissionIncome.toFixed(2)}</p>
-        <p>Toplam Gider: ${calc.totalExpenses.toFixed(2)}</p>
-        <p className="text-green-400 font-bold text-lg">Tahmini Net: ${calc.estimatedNet.toFixed(2)}</p>
-        <p className="text-red-400">Tahmini Vergi: ${calc.totalTax.toFixed(2)}</p>
+      {/* Giderler */}
+      <div className="bg-gray-900 p-4 rounded mb-6">
+        <h3 className="mb-2 text-sm text-gray-400">EXPENSES</h3>
+        <div className="flex gap-2">
+          <input className="bg-gray-800 p-2 rounded w-full" placeholder="Description" value={newExpDesc} onChange={(e) => setNewExpDesc(e.target.value)} />
+          <input className="bg-gray-800 p-2 rounded w-20" placeholder="$" type="number" value={newExpAmt} onChange={(e) => setNewExpAmt(e.target.value)} />
+          <button onClick={addExpense} className="bg-blue-600 px-4 rounded">+</button>
+        </div>
       </div>
+
+      {/* Sonuç */}
+      <div className="bg-gray-900 p-6 rounded-lg border border-gray-800">
+        <p className="text-sm text-gray-400">ESTIMATED NET INCOME</p>
+        <h1 className="text-4xl font-bold text-green-500 mb-4">${estimatedNet.toFixed(2)}</h1>
+        <div className="text-sm space-y-2">
+          <div className="flex justify-between"><span>Hourly Rate</span> <span>${(totalGross / (hours || 1)).toFixed(2)}/hr</span></div>
+          <div className="flex justify-between text-gray-400"><span>Federal Tax</span> <span>$0.00</span></div>
+          <div className="flex justify-between text-gray-400"><span>State Tax (FL)</span> <span>$0.00</span></div>
+        </div>
+      </div>
+
+      <button className="w-full mt-6 bg-blue-600 p-3 rounded font-bold">SAVE TO ARCHIVE</button>
     </div>
   );
 };
