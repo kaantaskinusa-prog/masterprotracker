@@ -72,7 +72,13 @@ export default function Calculator() {
   };
 
   const calc = useMemo(() => {
-    const totalGross = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0);
+    const calc = useMemo(() => {
+    // BURAYI GÜNCELLE:
+    const totalGross = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0) as number;
+    
+    // ... geri kalan kodun aynı kalacak
+    const m = Number(miles || 0);
+    // ...
     const m = Number(miles || 0);
     const h = Number(totalHours || 1);
     const isNailTech = industry === 'NailTech';

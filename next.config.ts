@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // eslint yapılandırmasını kaldırdık çünkü build hatası veriyor
+  // eslint yapılandırmasını kaldırdık
 };
 
 export default nextConfig;
