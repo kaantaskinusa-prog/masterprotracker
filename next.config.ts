@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // eslint yapılandırmasını kaldırdık
+  // Config içine bir şey yazmana gerek yok, boş kalsın.
 };
 
 export default nextConfig;
