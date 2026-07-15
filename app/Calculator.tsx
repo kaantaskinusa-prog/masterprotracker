@@ -17,7 +17,10 @@ const INDUSTRIES = {
     'PersonalTraining': { label: 'Personal Training' }
 };
 
-const CATEGORIES = ['Benzin', 'Yemek', 'Kira', 'Ekipman', 'Eğlence', 'Diğer'];
+const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June', 
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const STATE_TAX_RATES: { [key: string]: number } = {
     "AL": 0.05, "AK": 0.00, "AZ": 0.025, "AR": 0.044, "CA": 0.08, "CO": 0.044, "CT": 0.05, "DE": 0.066, "FL": 0.00, "GA": 0.055,
@@ -32,15 +35,17 @@ const FEDERAL_TAX_RATE = 0.253;
 export default function Calculator() {
   const [industry, setIndustry] = useState('Delivery');
   const [selectedState, setSelectedState] = useState('FL');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
   const [weeklyData, setWeeklyData] = useState<any>({ Mon: '', Tue: '', Wed: '', Thu: '', Fri: '', Sat: '', Sun: '' });
   const [expenseList, setExpenseList] = useState<any[]>([]);
   const [newDesc, setNewDesc] = useState('');
   const [newAmount, setNewAmount] = useState('');
-  const [newCategory, setNewCategory] = useState(CATEGORIES[0]);
+  
   const [miles, setMiles] = useState('0');
   const [gasPrice, setGasPrice] = useState('3.50');
   const [mpg, setMpg] = useState('25');
   const [commissionRate, setCommissionRate] = useState('10');
+  
   const [totalHours, setTotalHours] = useState('0');
   const [cogs, setCogs] = useState('0');
   const [history, setHistory] = useState<any[]>([]);
@@ -50,8 +55,21 @@ export default function Calculator() {
     if (saved) { try { setHistory(JSON.parse(saved)); } catch (e) { setHistory([]); } }
   }, []);
 
+  const addExpense = () => {
+    if (!newDesc || !newAmount) return;
+    setExpenseList([...expenseList, { id: Date.now(), desc: newDesc, amount: newAmount }]);
+    setNewDesc('');
+    setNewAmount('');
+  };
+
+  const removeExpense = (id: number) => {
+    setExpenseList(expenseList.filter(e => e.id !== id));
+  };
+
   const calc = useMemo(() => {
+    // BURASI ÖNEMLİ: 'as number' ekleyerek TypeScript'in tip hatasını çözdük
     const totalGross = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0) as number;
+    
     const m = Number(miles || 0);
     const h = Number(totalHours || 1);
     const isNailTech = industry === 'NailTech';
@@ -75,19 +93,14 @@ export default function Calculator() {
     const fedTax = taxableIncome * FEDERAL_TAX_RATE;
     const stateTax = taxableIncome * (STATE_TAX_RATES[selectedState] || 0);
     const totalTax = fedTax + stateTax;
+    
     const estimatedNet = totalGross - fuelCost - manualExpenses - totalTax - costOfGoods - commissionAmt;
     
     return { totalGross, fuelCost, irsDeduction, manualExpenses, estimatedNet, totalTax, fedTax, stateTax, hourlyRate: totalGross / (h || 1), commissionAmt };
   }, [weeklyData, miles, gasPrice, mpg, selectedState, industry, expenseList, totalHours, cogs, commissionRate]);
 
-  const addExpense = () => {
-    if (!newDesc || !newAmount) return;
-    setExpenseList([...expenseList, { id: Date.now(), desc: newDesc, amount: newAmount, category: newCategory }]);
-    setNewDesc(''); setNewAmount('');
-  };
-
   const handleSave = () => {
-    const entry = { id: Date.now(), date: new Date().toLocaleDateString(), industry, gross: calc.totalGross, net: calc.estimatedNet };
+    const entry = { id: Date.now(), month: selectedMonth, industry, gross: calc.totalGross, net: calc.estimatedNet, tax: calc.totalTax };
     const updated = [entry, ...history];
     setHistory(updated);
     localStorage.setItem('gig_final_v8', JSON.stringify(updated));
@@ -97,55 +110,45 @@ export default function Calculator() {
     <div className="max-w-4xl mx-auto p-6 bg-[#0f172a] text-zinc-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-cyan-400">MASTER PRO TRACKER</h1>
       
-      {/* İndüstri ve State */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <select onChange={(e) => setIndustry(e.target.value)} className="bg-[#1e293b] p-2 rounded text-sm">
-            {Object.entries(INDUSTRIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select onChange={(e) => setSelectedState(e.target.value)} className="bg-[#1e293b] p-2 rounded text-sm">
-            {Object.keys(STATE_TAX_RATES).map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <div>
+            <label className="text-[10px] text-zinc-500 uppercase">Industry</label>
+            <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full bg-[#1e293b] p-3 rounded-xl border border-blue-900 font-bold">{Object.keys(INDUSTRIES).map(i => <option key={i} value={i}>{INDUSTRIES[i as keyof typeof INDUSTRIES].label}</option>)}</select>
+        </div>
+        <div>
+            <label className="text-[10px] text-zinc-500 uppercase">State</label>
+            <select value={selectedState} onChange={(e) => setSelectedState(e.target.value)} className="w-full bg-[#1e293b] p-3 rounded-xl border border-blue-900 font-bold">{Object.keys(STATE_TAX_RATES).map(s => <option key={s} value={s}>{s}</option>)}</select>
+        </div>
       </div>
 
-      {/* Gelir Girişi */}
-      <div className="grid grid-cols-7 gap-1 mb-6">
-        {Object.keys(weeklyData).map(day => (
-            <div key={day} className="text-center">
-                <label className="text-[10px] block text-zinc-500">{day}</label>
-                <input type="number" onChange={(e) => setWeeklyData({...weeklyData, [day]: e.target.value})} className="w-full bg-[#1e293b] p-2 rounded border border-blue-900" />
+      <div className="grid grid-cols-8 gap-1 mb-6 items-end">
+        <div>
+            <label className="text-[8px] text-zinc-500 uppercase text-center block">Month</label>
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-full bg-[#1e293b] p-2 rounded text-center text-xs border border-blue-900/50">{MONTHS.map(m => <option key={m} value={m}>{m}</option>)}</select>
+        </div>
+        {Object.keys(weeklyData).map((d) => (
+            <div key={d} className="flex flex-col">
+                <label className="text-[8px] text-zinc-500 uppercase text-center">{d}</label>
+                <input type="number" className="bg-[#1e293b] p-2 rounded text-center text-sm" value={weeklyData[d]} onChange={(e) => setWeeklyData({...weeklyData, [d]: e.target.value})} />
             </div>
         ))}
       </div>
 
-      {/* Sonuçlar */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#1e293b] p-4 rounded-xl border border-cyan-900/50">
-            <span className="text-[10px] text-cyan-400">GROSS</span>
-            <div className="text-xl font-bold">${calc.totalGross.toFixed(2)}</div>
-        </div>
-        <div className="bg-[#1e293b] p-4 rounded-xl border border-rose-900/50">
-            <span className="text-[10px] text-rose-400">TAX</span>
-            <div className="text-xl font-bold">${calc.totalTax.toFixed(2)}</div>
-        </div>
-        <div className="bg-[#1e293b] p-4 rounded-xl border border-green-900/50">
-            <span className="text-[10px] text-green-400">NET</span>
-            <div className="text-xl font-bold">${calc.estimatedNet.toFixed(2)}</div>
-        </div>
+      <div className="grid grid-cols-4 gap-2 mb-6">
+        {industry === 'NailTech' ? (
+             <div className="col-span-4"><label className="text-[10px] text-zinc-500 uppercase">Commission Rate (%)</label><input type="number" value={commissionRate} onChange={(e) => setCommissionRate(e.target.value)} className="w-full bg-[#1e293b] p-2 rounded text-sm" /></div>
+        ) : (
+            <>
+                <div><label className="text-[10px] text-zinc-500 uppercase">Miles</label><input type="number" value={miles} onChange={(e) => setMiles(e.target.value)} className="w-full bg-[#1e293b] p-2 rounded text-sm" /></div>
+                <div><label className="text-[10px] text-zinc-500 uppercase">Gas $</label><input type="number" value={gasPrice} onChange={(e) => setGasPrice(e.target.value)} className="w-full bg-[#1e293b] p-2 rounded text-sm" /></div>
+                <div><label className="text-[10px] text-zinc-500 uppercase">MPG</label><input type="number" value={mpg} onChange={(e) => setMpg(e.target.value)} className="w-full bg-[#1e293b] p-2 rounded text-sm" /></div>
+            </>
+        )}
+        <div><label className="text-[10px] text-zinc-500 uppercase">Hours</label><input type="number" value={totalHours} onChange={(e) => setTotalHours(e.target.value)} className="w-full bg-[#1e293b] p-2 rounded text-sm" /></div>
       </div>
 
-      {/* Giderler */}
-      <div className="bg-[#1e293b] p-4 rounded-xl border border-blue-900/50 mb-6">
+      <div className="mb-6 bg-[#1e293b] p-4 rounded-xl border border-blue-900/50">
+        <label className="text-[10px] text-zinc-500 uppercase block mb-2">Expenses</label>
         <div className="flex gap-2 mb-2">
-            <input type="text" placeholder="Desc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="flex-1 bg-[#0f172a] p-2 rounded text-sm" />
-            <input type="number" placeholder="$" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} className="w-20 bg-[#0f172a] p-2 rounded text-sm" />
-            <select onChange={(e) => setNewCategory(e.target.value)} className="bg-[#0f172a] p-2 rounded text-sm">
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <button onClick={addExpense} className="bg-blue-600 px-4 rounded font-bold">+</button>
-        </div>
-      </div>
-
-      <button onClick={handleSave} className="w-full py-3 bg-cyan-600 rounded-xl font-bold">SAVE ENTRY</button>
-    </div>
-  );
-}
+            <input type="text" placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="flex-1 bg-[#0f172a] p-2 rounded text-sm border border-blue-900" />
+            <input type="number" placeholder="$" value={newAmount} onChange={(e) => setNewAmount(e
