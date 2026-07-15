@@ -1,8 +1,7 @@
-
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 
-// --- SABİTLER (Hiçbiri silinmedi) ---
+// --- SABİTLER ---
 const INDUSTRIES = {
     'Delivery': { label: 'Delivery (Uber/DoorDash)' },
     'Rideshare': { label: 'Rideshare (Uber/Lyft)' },
@@ -18,12 +17,7 @@ const INDUSTRIES = {
     'PersonalTraining': { label: 'Personal Training' }
 };
 
-const CATEGORIES = ['Benzin', 'Yemek', 'Kira', 'Ekipman', 'Eğlence', 'Diğer']; // YENİ: Kategori listesi
-
-const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June', 
-    'July', 'August', 'September', 'October', 'November', 'December'
-];
+const CATEGORIES = ['Benzin', 'Yemek', 'Kira', 'Ekipman', 'Eğlence', 'Diğer'];
 
 const STATE_TAX_RATES: { [key: string]: number } = {
     "AL": 0.05, "AK": 0.00, "AZ": 0.025, "AR": 0.044, "CA": 0.08, "CO": 0.044, "CT": 0.05, "DE": 0.066, "FL": 0.00, "GA": 0.055,
@@ -38,16 +32,11 @@ const FEDERAL_TAX_RATE = 0.253;
 export default function Calculator() {
   const [industry, setIndustry] = useState('Delivery');
   const [selectedState, setSelectedState] = useState('FL');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
   const [weeklyData, setWeeklyData] = useState<any>({ Mon: '', Tue: '', Wed: '', Thu: '', Fri: '', Sat: '', Sun: '' });
-  
-  // Gider yönetimi
   const [expenseList, setExpenseList] = useState<any[]>([]);
   const [newDesc, setNewDesc] = useState('');
   const [newAmount, setNewAmount] = useState('');
-  const [newCategory, setNewCategory] = useState(CATEGORIES[0]); // Yeni: Kategori state'i
-  
-  // Diğer veriler
+  const [newCategory, setNewCategory] = useState(CATEGORIES[0]);
   const [miles, setMiles] = useState('0');
   const [gasPrice, setGasPrice] = useState('3.50');
   const [mpg, setMpg] = useState('25');
@@ -61,19 +50,7 @@ export default function Calculator() {
     if (saved) { try { setHistory(JSON.parse(saved)); } catch (e) { setHistory([]); } }
   }, []);
 
-  const addExpense = () => {
-    if (!newDesc || !newAmount) return;
-    setExpenseList([...expenseList, { id: Date.now(), desc: newDesc, amount: newAmount, category: newCategory }]);
-    setNewDesc('');
-    setNewAmount('');
-  };
-
-  const removeExpense = (id: number) => {
-    setExpenseList(expenseList.filter(e => e.id !== id));
-  };
-
   const calc = useMemo(() => {
-    // TypeScript hatası için 'as number' eklendi
     const totalGross = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0) as number;
     const m = Number(miles || 0);
     const h = Number(totalHours || 1);
@@ -98,14 +75,19 @@ export default function Calculator() {
     const fedTax = taxableIncome * FEDERAL_TAX_RATE;
     const stateTax = taxableIncome * (STATE_TAX_RATES[selectedState] || 0);
     const totalTax = fedTax + stateTax;
-    
     const estimatedNet = totalGross - fuelCost - manualExpenses - totalTax - costOfGoods - commissionAmt;
     
     return { totalGross, fuelCost, irsDeduction, manualExpenses, estimatedNet, totalTax, fedTax, stateTax, hourlyRate: totalGross / (h || 1), commissionAmt };
   }, [weeklyData, miles, gasPrice, mpg, selectedState, industry, expenseList, totalHours, cogs, commissionRate]);
 
+  const addExpense = () => {
+    if (!newDesc || !newAmount) return;
+    setExpenseList([...expenseList, { id: Date.now(), desc: newDesc, amount: newAmount, category: newCategory }]);
+    setNewDesc(''); setNewAmount('');
+  };
+
   const handleSave = () => {
-    const entry = { id: Date.now(), month: selectedMonth, industry, gross: calc.totalGross, net: calc.estimatedNet, tax: calc.totalTax };
+    const entry = { id: Date.now(), date: new Date().toLocaleDateString(), industry, gross: calc.totalGross, net: calc.estimatedNet };
     const updated = [entry, ...history];
     setHistory(updated);
     localStorage.setItem('gig_final_v8', JSON.stringify(updated));
@@ -115,36 +97,55 @@ export default function Calculator() {
     <div className="max-w-4xl mx-auto p-6 bg-[#0f172a] text-zinc-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-cyan-400">MASTER PRO TRACKER</h1>
       
-      {/* Harcama Bölümü (Kategorize edilmiş) */}
-      <div className="mb-6 bg-[#1e293b] p-4 rounded-xl border border-blue-900/50">
-        <label className="text-[10px] text-zinc-500 uppercase block mb-2">Expenses</label>
-        <div className="flex flex-col gap-2 mb-2">
-            <div className="flex gap-2">
-                <input type="text" placeholder="Desc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="flex-1 bg-[#0f172a] p-2 rounded text-sm border border-blue-900" />
-                <input type="number" placeholder="$" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} className="w-20 bg-[#0f172a] p-2 rounded text-sm border border-blue-900" />
+      {/* İndüstri ve State */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <select onChange={(e) => setIndustry(e.target.value)} className="bg-[#1e293b] p-2 rounded text-sm">
+            {Object.entries(INDUSTRIES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <select onChange={(e) => setSelectedState(e.target.value)} className="bg-[#1e293b] p-2 rounded text-sm">
+            {Object.keys(STATE_TAX_RATES).map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      {/* Gelir Girişi */}
+      <div className="grid grid-cols-7 gap-1 mb-6">
+        {Object.keys(weeklyData).map(day => (
+            <div key={day} className="text-center">
+                <label className="text-[10px] block text-zinc-500">{day}</label>
+                <input type="number" onChange={(e) => setWeeklyData({...weeklyData, [day]: e.target.value})} className="w-full bg-[#1e293b] p-2 rounded border border-blue-900" />
             </div>
-            <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full bg-[#0f172a] p-2 rounded text-sm border border-blue-900 text-zinc-400">
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
-            <button onClick={addExpense} className="bg-blue-600 py-2 rounded font-bold w-full">+</button>
+        ))}
+      </div>
+
+      {/* Sonuçlar */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-[#1e293b] p-4 rounded-xl border border-cyan-900/50">
+            <span className="text-[10px] text-cyan-400">GROSS</span>
+            <div className="text-xl font-bold">${calc.totalGross.toFixed(2)}</div>
         </div>
-        
-        <div className="space-y-1">
-            {expenseList.map(exp => (
-                <div key={exp.id} className="flex justify-between items-center text-[10px] bg-[#0f172a] p-2 rounded border border-blue-900/30">
-                    <div>
-                        <span className="block font-bold text-white">{exp.desc}</span>
-                        <span className="text-cyan-500 bg-cyan-900/20 px-1 rounded">{exp.category}</span>
-                    </div>
-                    <div className="flex gap-2 items-center">
-                        <span>${exp.amount}</span>
-                        <button onClick={() => removeExpense(exp.id)} className="text-rose-400">x</button>
-                    </div>
-                </div>
-            ))}
+        <div className="bg-[#1e293b] p-4 rounded-xl border border-rose-900/50">
+            <span className="text-[10px] text-rose-400">TAX</span>
+            <div className="text-xl font-bold">${calc.totalTax.toFixed(2)}</div>
+        </div>
+        <div className="bg-[#1e293b] p-4 rounded-xl border border-green-900/50">
+            <span className="text-[10px] text-green-400">NET</span>
+            <div className="text-xl font-bold">${calc.estimatedNet.toFixed(2)}</div>
         </div>
       </div>
-      {/* (Geri kalan UI yapın burada devam edecek...) */}
+
+      {/* Giderler */}
+      <div className="bg-[#1e293b] p-4 rounded-xl border border-blue-900/50 mb-6">
+        <div className="flex gap-2 mb-2">
+            <input type="text" placeholder="Desc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="flex-1 bg-[#0f172a] p-2 rounded text-sm" />
+            <input type="number" placeholder="$" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} className="w-20 bg-[#0f172a] p-2 rounded text-sm" />
+            <select onChange={(e) => setNewCategory(e.target.value)} className="bg-[#0f172a] p-2 rounded text-sm">
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <button onClick={addExpense} className="bg-blue-600 px-4 rounded font-bold">+</button>
+        </div>
+      </div>
+
+      <button onClick={handleSave} className="w-full py-3 bg-cyan-600 rounded-xl font-bold">SAVE ENTRY</button>
     </div>
   );
 }
