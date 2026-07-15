@@ -72,13 +72,8 @@ export default function Calculator() {
   };
 
   const calc = useMemo(() => {
-    const calc = useMemo(() => {
-    // BURAYI GÜNCELLE:
+    // TypeScript hatası için 'as number' eklendi
     const totalGross = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0) as number;
-    
-    // ... geri kalan kodun aynı kalacak
-    const m = Number(miles || 0);
-    // ...
     const m = Number(miles || 0);
     const h = Number(totalHours || 1);
     const isNailTech = industry === 'NailTech';
@@ -119,7 +114,7 @@ export default function Calculator() {
     <div className="max-w-4xl mx-auto p-6 bg-[#0f172a] text-zinc-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-cyan-400">MASTER PRO TRACKER</h1>
       
-      {/* ... (Geri kalan kod yapın aynı, buraya kategori eklenmiş hali gelecek) ... */}
+      {/* Harcama Bölümü (Kategorize edilmiş) */}
       <div className="mb-6 bg-[#1e293b] p-4 rounded-xl border border-blue-900/50">
         <label className="text-[10px] text-zinc-500 uppercase block mb-2">Expenses</label>
         <div className="flex flex-col gap-2 mb-2">
@@ -148,7 +143,7 @@ export default function Calculator() {
             ))}
         </div>
       </div>
-      {/* (Kalan kodun buraya devam ediyor...) */}
+      {/* (Geri kalan UI yapın burada devam edecek...) */}
     </div>
   );
 }
