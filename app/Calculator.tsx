@@ -1,7 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 
-// --- SABİTLER ---
 const INDUSTRIES = {
     'Delivery': { label: 'Delivery (Uber/DoorDash)' },
     'Rideshare': { label: 'Rideshare (Uber/Lyft)' },
@@ -67,7 +66,7 @@ export default function Calculator() {
   };
 
   const calc = useMemo(() => {
-    // BURASI ÖNEMLİ: 'as number' ekleyerek TypeScript'in tip hatasını çözdük
+    // TypeScript hatasını önlemek için 'as number' ile cast edildi
     const totalGross = Object.values(weeklyData).reduce((a: any, b: any) => a + Number(b || 0), 0) as number;
     
     const m = Number(miles || 0);
@@ -151,4 +150,50 @@ export default function Calculator() {
         <label className="text-[10px] text-zinc-500 uppercase block mb-2">Expenses</label>
         <div className="flex gap-2 mb-2">
             <input type="text" placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="flex-1 bg-[#0f172a] p-2 rounded text-sm border border-blue-900" />
-            <input type="number" placeholder="$" value={newAmount} onChange={(e) => setNewAmount(e
+            <input type="number" placeholder="$" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} className="w-20 bg-[#0f172a] p-2 rounded text-sm border border-blue-900" />
+            <button onClick={addExpense} className="bg-blue-600 px-4 rounded font-bold">+</button>
+        </div>
+        <div className="space-y-1">
+            {expenseList.map(exp => (
+                <div key={exp.id} className="flex justify-between text-[10px] bg-[#0f172a] p-2 rounded border border-blue-900/30">
+                    <span>{exp.desc}</span>
+                    <div className="flex gap-2">
+                        <span>${exp.amount}</span>
+                        <button onClick={() => removeExpense(exp.id)} className="text-rose-400">x</button>
+                    </div>
+                </div>
+            ))}
+        </div>
+      </div>
+
+      <div className="bg-[#1e293b] border border-blue-900 rounded-xl p-6 mb-6">
+        <div className="text-zinc-500 text-xs uppercase font-bold">Estimated Net Income</div>
+        <div className="text-5xl font-black text-emerald-400 mb-6">${calc.estimatedNet.toFixed(2)}</div>
+        
+        <div className="space-y-3 text-sm border-t border-blue-900/30 pt-4">
+            <div className="flex justify-between"><span>Hourly Rate</span> <span className="font-bold text-cyan-400">${calc.hourlyRate.toFixed(2)}/hr</span></div>
+            {industry === 'NailTech' ? (
+                <div className="flex justify-between"><span>Commission Deducted</span> <span className="font-bold text-rose-400">-${calc.commissionAmt.toFixed(2)}</span></div>
+            ) : (
+                <div className="flex justify-between"><span>IRS Tax Deduction</span> <span className="font-bold text-emerald-500">+${calc.irsDeduction.toFixed(2)}</span></div>
+            )}
+            <div className="flex justify-between"><span>Federal Tax</span> <span className="font-bold text-rose-400">-${calc.fedTax.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>State Tax ({selectedState})</span> <span className="font-bold text-rose-400">-${calc.stateTax.toFixed(2)}</span></div>
+        </div>
+      </div>
+
+      <button onClick={handleSave} className="w-full bg-blue-600 py-3 rounded-xl font-bold mb-6 hover:bg-blue-700">SAVE TO ARCHIVE</button>
+
+      <div className="space-y-4">
+        <h3 className="font-bold text-blue-300 uppercase text-xs">History for {selectedMonth}</h3>
+        {history.filter(h => h.month === selectedMonth).map((h: any) => (
+            <div key={h.id} className="bg-[#1e293b] p-4 rounded-xl border border-blue-900/30 flex justify-between">
+                <span className="font-bold text-zinc-300">{h.industry}</span>
+                <span className="text-emerald-400 font-bold">Net: ${h.net.toFixed(0)}</span>
+                <span className="text-rose-400">Tax: ${(h.tax || 0).toFixed(0)}</span>
+            </div>
+        ))}
+      </div>
+    </div>
+  );
+}
